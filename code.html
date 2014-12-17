@@ -1,0 +1,89 @@
+<html>
+ <head>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript">
+   (function ($) {
+   
+    $.fn.confirm = function(options) {
+    
+     var isOn = false;
+     var _self = this;
+    
+     this.on('click', function(confev) {
+     
+      console.log('click');
+      console.log($(this).position(), 'w', $(this).width(), 'h', $(this).height());
+      
+      if (_self.isOn) {
+       console.log('is on');
+       return false;
+      }
+      
+      _self.isOn = true;
+      
+      // No tiene medidas sin ponerlo en el dom
+      //console.log($('<button>No</button>').position(), 'w', $('<button>No</button>').width(), 'h', $('<button>No</button>').height());
+      
+      var no = $('<button>No</button>');
+      no.on('click', function(noev) {
+      
+       console.log('no click');
+       
+       //console.log(noev);
+       //console.log(this);
+       $(this).next().next().remove(); // .next es el elemento del confirm, .next.next es el Yes
+       $(this).remove();
+       
+       console.log(_self);
+       
+       _self.isOn = false;
+       
+       options.no(); // callback
+      });
+      
+      var yes = $('<button>Yes</button>');
+      yes.on('click', function(yesev) {
+      
+       console.log('yes click');
+       
+       //console.log(yesev);
+       
+       $(this).prev().prev().remove(); // .prev es el elemento del confirm, .prev.prev es el No
+       $(this).remove();
+       
+       _self.isOn = false;
+       
+       options.yes(); // callback
+      });
+      
+      $(this).before(no);
+      $(this).after(yes);
+      
+      return false;
+     });
+    };
+    
+    $.fn.confirm.defaults = { // no is not executed from default Uncaught TypeError: Cannot read property 'yes' of undefined
+     yes: function() {},
+     no: function() {}
+    };
+   }(jQuery));
+   
+   $(function () {
+    console.log('ready');
+    
+    $('#bone').confirm({yes: function() { console.log('yes custom handler') }});
+    $('#aone').confirm();
+   });
+  </script>
+ </head>
+ <body>
+ 
+  <h1>Button</h1>
+  <button id="bone">A Button</button>
+  
+  <h1>Link</h1>
+  <a href="http://google.com" id="aone">A Link</a>
+  
+ </body>
+</html>
