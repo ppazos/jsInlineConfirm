@@ -6,20 +6,41 @@
    
     $.fn.confirm = function(options) {
     
-     var isOn = false;
-     var _self = this;
+     // default options.
+     var options = $.extend({
+         no:  function() { console.log('default no') },
+         yes: function() { console.log('default yes') }
+     }, options );
     
-     this.on('click', function(confev) {
+     var isOn = false;
+     var _self = $(this);
+     var clickHandler = function(confev, params) {
      
-      console.log('click');
-      console.log($(this).position(), 'w', $(this).width(), 'h', $(this).height());
+      console.log(this, _self);
+      //console.log(confev);
+      console.log('options', options);
+      console.log('params', params);
+      //console.log($(this).position(), 'w', $(this).width(), 'h', $(this).height());
       
-      if (_self.isOn) {
+      
+      // Si se hizo click en Yes en el confirm, viene doit en params.
+      // Verificando esto y retornando hace que se ejecute el evento por defecto asociado a _self, ejecutando el link o submiteando el form.
+      if (params != undefined && params.doit)
+      {
+        console.log('doit', params, 'defaultPrevented', confev.isDefaultPrevented());
+        return true;
+      }
+
+      // Si el confirm esta on, no se muestra de nuevo ni se ejecuta el evento por defecto.
+      if (_self.isOn === true) {
        console.log('is on');
        return false;
       }
       
-      _self.isOn = true;
+      // Previene el evento por defecto para mostrar el confirm
+      confev.preventDefault();
+      
+      
       
       // No tiene medidas sin ponerlo en el dom
       //console.log($('<button>No</button>').position(), 'w', $('<button>No</button>').width(), 'h', $('<button>No</button>').height());
@@ -29,10 +50,8 @@
       
        console.log('no click');
        
-       //console.log(noev);
-       //console.log(this);
-       $(this).next().next().remove(); // .next es el elemento del confirm, .next.next es el Yes
-       $(this).remove();
+       // Cierra el confirm
+       $(this).parent().remove(); // Parent es el contenedor del confirm
        
        console.log(_self);
        
@@ -46,27 +65,66 @@
       
        console.log('yes click');
        
-       //console.log(yesev);
-       
-       $(this).prev().prev().remove(); // .prev es el elemento del confirm, .prev.prev es el No
-       $(this).remove();
-       
+       // Cierra el confirm
+       $(this).parent().remove(); // Parent es el contenedor del confirm
+
        _self.isOn = false;
        
        options.yes(); // callback
+       
+       // Ejecuta el evento por defecto que se intersecto para colocar el confirm
+       // Se lanza el handler por defecto para click diciendole a este handler que no haga el preventDefault.
+
+       // Anchor doesn't navigate. click executes onClick, doesn't executes the href attr
+       // (http://stackoverflow.com/questions/5577555/jquery-trigger-click-doesnt-work)
+       if (_self.prop("tagName") == "A")
+       {
+          _self.on('click', function(){ window.location.href = this.href; return; });
+       }
+       
+       _self.trigger('click', {doit: true});
       });
       
-      $(this).before(no);
-      $(this).after(yes);
+      // Agrega los botones al DOM
+      _confirm = $('<div class="confirm" style="position:absolute; display:none; background-color:red;"></div>');
+      _confirm.append(no);
+      _confirm.append(yes);
       
-      return false;
-     });
+      $('body').append( _confirm );
+      console.log(_self.position(), _self.offset(), 'w', _self.width(), 'h', _self.height());
+      console.log(yes.position(), yes.offset(), 'w', yes.width(), 'h', yes.height());
+      //$(this).before(no);
+      //$(this).after(yes);
+
+      // This case makes the confirm to appear on the right of the clicked object
+      _confirm.css({
+         position: "absolute",
+         top: _self.position().top + "px",
+         left: (_self.position().left + _self.outerWidth()) + "px",
+         //width: '6rem',
+         height: _self.outerHeight(),
+         'margin-left': '10px'
+       }).show();
+ 
+      // El confirm esta activo
+      _self.isOn = true;
+      
+      //confev.preventDefault();
+      //return false;
+     }; // clickHandler
+     
+    
+     _self.on('click', clickHandler);
     };
     
+    
+    
+    /*
     $.fn.confirm.defaults = { // no is not executed from default Uncaught TypeError: Cannot read property 'yes' of undefined
      yes: function() {},
      no: function() {}
     };
+    */
    }(jQuery));
    
    $(function () {
@@ -74,16 +132,23 @@
     
     $('#bone').confirm({yes: function() { console.log('yes custom handler') }});
     $('#aone').confirm();
+    $('#subone').confirm();
    });
   </script>
  </head>
  <body>
  
-  <h1>Button</h1>
+  <h1>Button click</h1>
   <button id="bone">A Button</button>
   
-  <h1>Link</h1>
+  <h1>Link click</h1>
   <a href="http://google.com" id="aone">A Link</a>
+  
+  <h1>Form submit</h1>
+  <form>
+    <input type="hidden" value="val" name="nam" />
+    <input type="submit" value="submit" id="subone" />
+  </form>
   
  </body>
 </html>
